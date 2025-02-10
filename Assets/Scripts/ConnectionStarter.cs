@@ -2,12 +2,14 @@ using System.Collections;
 using PurrLobby;
 using PurrNet;
 using PurrNet.Logging;
+using PurrNet.Steam;
 using PurrNet.Transports;
+using Steamworks;
 using UnityEngine;
 
 public class ConnectionStarter : MonoBehaviour
 {
-    private PurrTransport _purrTransport;
+    private SteamTransport _steamTransport;
     private UDPTransport _udpTransport;
     private NetworkManager _networkManager;
     private LobbyDataHolder _lobbyDataHolder;
@@ -16,8 +18,8 @@ public class ConnectionStarter : MonoBehaviour
 
     private void Awake()
     {
-        if (!TryGetComponent(out _purrTransport))
-            PurrLogger.LogError($"Failed to get {nameof(PurrTransport)} component.", this);
+        if (!TryGetComponent(out _steamTransport))
+            PurrLogger.LogError($"Failed to get {nameof(SteamTransport)} component.", this);
 
         if (!TryGetComponent(out _udpTransport))
             PurrLogger.LogError($"Failed to get {nameof(UDPTransport)} component.", this);
@@ -38,9 +40,9 @@ public class ConnectionStarter : MonoBehaviour
             return;
         }
 
-        if (!_purrTransport)
+        if (!_steamTransport)
         {
-            PurrLogger.LogError($"Failed to start connection. {nameof(PurrTransport)} is null!", this);
+            PurrLogger.LogError($"Failed to start connection. {nameof(SteamTransport)} is null!", this);
             return;
         }
 
@@ -65,7 +67,7 @@ public class ConnectionStarter : MonoBehaviour
 
     private void StartFromLobby()
     {
-        _networkManager.transport = _purrTransport;
+        _networkManager.transport = _steamTransport;
 
         if (!_lobbyDataHolder)
         {
@@ -79,7 +81,19 @@ public class ConnectionStarter : MonoBehaviour
             return;
         }
 
-        _purrTransport.roomName = _lobbyDataHolder.CurrentLobby.lobbyId;
+        if (!ulong.TryParse(_lobbyDataHolder.CurrentLobby.lobbyId, out ulong ulongId))
+        {
+            Debug.LogError($"Failed to parse lobbyid into ulong!", this);
+        }
+
+        var lobbyOwner = SteamMatchmaking.GetLobbyOwner(new CSteamID(ulongId));
+
+        if (!lobbyOwner.IsValid())
+        {
+            Debug.LogError($"Failed to get lobby owner from parsed lobby ID", this);
+        }
+
+        _steamTransport.address = lobbyOwner.ToString();
 
         if (_lobbyDataHolder.CurrentLobby.IsOwner)
             _networkManager.StartServer();
