@@ -46,5 +46,8 @@ public class PlayerCamera : NetworkBehaviour
         }
 
         transform.rotation = cameraMimic.transform.rotation;
+
+        // Confine mouse to window
+        Cursor.lockState = CursorLockMode.Confined;
     }
 }
