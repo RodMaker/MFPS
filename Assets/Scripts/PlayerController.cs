@@ -23,7 +23,6 @@ public class PlayerController : NetworkBehaviour
     [Header("References")]
     [SerializeField] private CinemachineCamera playerCamera;
     [SerializeField] private NetworkAnimator animator;
-    [SerializeField] private List<Renderer> renderers = new();
     [SerializeField] private StateMachine stateMachine;
     [SerializeField] private List<StateNode> weaponStates = new();
 
@@ -36,16 +35,6 @@ public class PlayerController : NetworkBehaviour
         base.OnSpawned();
 
         enabled = isOwner;
-
-        playerCamera.gameObject.SetActive(isOwner);
-
-        if (isOwner)
-        {
-            foreach (var rend in renderers)
-            {
-                rend.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
-            }
-        }
     }
 
     private void OnDisable()
