@@ -4,6 +4,7 @@ using PurrNet;
 using System.Collections;
 using System.Collections.Generic;
 using PurrNet.StateMachine;
+using UnityEngine.UIElements;
 
 public class Gun : StateNode
 {
@@ -28,6 +29,10 @@ public class Gun : StateNode
     [SerializeField] private Transform rightIkTarget, leftIkTarget;
     [SerializeField] private List<Renderer> renderers = new();
     [SerializeField] private ParticleSystem environmentHitEffect, playerHitEffect;
+    [SerializeField] private SoundPlayer soundPlayerPrefab;
+    [SerializeField] private AudioSource shotSoundPlayer;
+    [SerializeField, Range(0f, 1f)] private float environmentHitVolume, playerHitVolume, shotVolume;
+    [SerializeField] private List<AudioClip> environmentHitSounds, playerHitSounds, shotSounds;
 
     private float lastFireTime;
     private Vector3 originalPosition;
@@ -109,10 +114,18 @@ public class Gun : StateNode
     [ObserversRpc(runLocally: true)]
     private void PlayerHit(PlayerHealth player, Vector3 localposition, Vector3 normal)
     {
-        if (playerHitEffect && player && player.transform)
+        if (!player || !player.transform) 
+        { 
+            return; 
+        }
+
+        if (playerHitEffect)
         {
             Instantiate(playerHitEffect, player.transform.TransformPoint(localposition), Quaternion.LookRotation(normal));
         }
+
+        var soundPlayer = Instantiate(soundPlayerPrefab, player.transform.TransformPoint(localposition), Quaternion.identity);
+        soundPlayer.PlaySound(playerHitSounds[UnityEngine.Random.Range(0, playerHitSounds.Count)], playerHitVolume);
     }
 
     [ObserversRpc(runLocally:true)]
@@ -122,6 +135,9 @@ public class Gun : StateNode
         {
             Instantiate(environmentHitEffect, position, Quaternion.LookRotation(normal));
         }
+
+        var soundPlayer = Instantiate(soundPlayerPrefab, position, Quaternion.identity);
+        soundPlayer.PlaySound(environmentHitSounds[UnityEngine.Random.Range(0, environmentHitSounds.Count)], environmentHitVolume);
     }
 
     private void SetIKTargets()
@@ -144,6 +160,15 @@ public class Gun : StateNode
         }
 
         recoilCoroutine = StartCoroutine(PlayRecoil());
+
+        if (isOwner)
+        {
+            shotSoundPlayer.PlayOneShot(shotSounds[UnityEngine.Random.Range(0, shotSounds.Count)], shotVolume / 3f);
+        }
+        else
+        {
+            shotSoundPlayer.PlayOneShot(shotSounds[UnityEngine.Random.Range(0, shotSounds.Count)], shotVolume);
+        }
     }
 
     private IEnumerator PlayRecoil()

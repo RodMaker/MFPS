@@ -7,6 +7,11 @@ public class PlayerHealth : NetworkBehaviour
     [SerializeField] private SyncVar<int> health = new(100);
     [SerializeField] private int selfLayer, otherLayer;
 
+    [SerializeField] private ParticleSystem deathParticles;
+    [SerializeField] private SoundPlayer soundPlayerPrefab;
+    [SerializeField] private AudioClip deathSound;
+    [SerializeField, Range(0, 1f)] private float deathAudioVolume = 0.5f;
+
     public Action<PlayerID> OnDeath_Server;
 
     public int Health => health;
@@ -66,5 +71,14 @@ public class PlayerHealth : NetworkBehaviour
             OnDeath_Server?.Invoke(owner.Value);
             Destroy(gameObject);
         }
+    }
+
+    [ObserversRpc(runLocally:true)]
+    private void PlayDeathEffects()
+    {
+        Instantiate(deathParticles, transform.position + Vector3.up, Quaternion.identity);
+
+        var soundPlayer = Instantiate(soundPlayerPrefab, transform.position + Vector3.up, Quaternion.identity);
+        soundPlayer.PlaySound(deathSound, deathAudioVolume);
     }
 }
